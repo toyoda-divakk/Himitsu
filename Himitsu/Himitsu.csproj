@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ConsoleAppFramework" Version="5.2.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if not exist &quot;E:\Program Files\Himitsu&quot; (  &#xD;&#xA;    mkdir &quot;E:\Program Files\Himitsu&quot;  &#xD;&#xA;)&#xD;&#xA;xcopy &quot;$(TargetDir)Himitsu.exe&quot; &quot;E:\Program Files\Himitsu\&quot; /Y  &#xD;&#xA;xcopy &quot;$(TargetDir)*.dll&quot; &quot;E:\Program Files\Himitsu\&quot; /Y  &#xD;&#xA;xcopy &quot;$(TargetDir)Himitsu.runtimeconfig.json&quot; &quot;E:\Program Files\Himitsu\&quot; /Y " />
+  </Target>
+
+</Project>
