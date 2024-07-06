@@ -24,6 +24,13 @@ AzureFunctionからAIに接続。
 
 
 # 説明書
-システム環境変数に"BliFuncKey"という変数で、Azure関数アプリのホストキーを登録してください。
+システム環境変数に以下を追加します。
+- "BliFuncKey"  
+Azure関数アプリのホストキーを登録してください。
+- "BliFuncEndpoint"  
+Azure関数アプリのエンドポイントを登録してください。
+- "Path"  
+"E:\Program Files\Himitsu"を追加してください。  
+
 ビルドしたら、ビルドスクリプトにより"E:\Program Files\Himitsu"に自動でコピーします。
 そしたら、コマンドプロンプトから"Himitsu"と打つと、プログラムが起動します。
