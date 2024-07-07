@@ -38,7 +38,7 @@ namespace Himitsu.Commands
         /// <param name="name">-n, issue番号か名前</param>
         /// <param name="hours">-h, 工数</param>
         /// <param name="date">-d, 日付：yyMMdd</param>
-        [Command("rec")]
+        [Command("work rec")]
         public async Task RecordWorkAsync(string name, double hours = 7.75, string? date = null)        // asyncの時はvoidにしてしまうと待機せずにメソッドが終了してしまい、Postが終わる前にプログラムが終了してしまう。
         {
             // データの準備
@@ -50,5 +50,43 @@ namespace Himitsu.Commands
             Console.WriteLine(res);
         }
 
+        /// <summary>
+        /// 指定した月の工数を取得して、書類フォーマットで出力します。
+        /// </summary>
+        /// <param name="month">-m, 年月yyyyMM</param>
+        /// <returns></returns>
+        [Command("work get")]
+        public async Task GetWorkAsync(string? month = null)
+        {
+            var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
+            using var client = new HttpClient();
+            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var json = await res.Content.ReadAsStringAsync();
+            var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
+            if (records == null || records.Count == 0)
+            {
+                Console.WriteLine("工数の取得ができませんでした。");
+                return;
+            }
+            foreach (var record in records)
+            {
+                Console.WriteLine(record.ToSheetFormat());
+            }
+        }
+
+        /// <summary>
+        /// 指定した月の工数を削除します
+        /// </summary>
+        /// <param name="month">-m, 年月yyyyMM</param>
+        /// <returns></returns>
+        [Command("work del")]
+        public async Task DeleteWorkAsync(string? month = null)
+        {
+            var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
+            var url = $"{GetUrl("DeleteWorkRecords")}&partitionKey={partitionKey}";
+            using var client = new HttpClient();
+            var res = await client.DeleteAsync(url);
+            Console.WriteLine(await res.Content.ReadAsStringAsync());
+        }
     }
 }
