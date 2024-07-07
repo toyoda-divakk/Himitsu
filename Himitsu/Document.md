@@ -16,12 +16,12 @@ Himitsu TestFunction
 CosmosDBに現在の開発環境の情報をkey-valueで登録しておいて、読んでもらう。
 
 # やることリスト
-●AzureFunctionでAPIをつくる。  
-●Azure Cosmos DBでNoSQLのDB設置。  
-ローカルでそのAPIを叩くメソッドを作成し、AIに叩けるように属性を付ける。  
-AzureFunctionからNoSQLのDBを更新。  
-AzureFunctionからAIに接続。  
+AzureFunctionからAIに接続。応答はstringで返してコンソール出力する。  
+1問1答形式のpromptyを読み込ませて、回答させる。（最初はprompty固定で）
+会話ログ付きの応答に挑戦。最初はprompt無し。
+DBに会話ログの記録。
 
+ついでに、やることリストもDBに登録して、AIに読めるようにしておこう。
 
 # 説明書
 システム環境変数に以下を追加します。
