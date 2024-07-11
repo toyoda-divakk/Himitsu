@@ -59,7 +59,12 @@ namespace Himitsu.Commands
             for (int i = 1; i < records.Count; i++)
             {
                 var next = records[i];
-                if (temp.TaskName == next.TaskName && temp.Date.Day + days == next.Date.Day)
+                if (temp.TaskName == next.TaskName && temp.Date.Day == next.Date.Day)
+                {
+                    temp.EndDate = next.Date;
+                    temp.Hours += next.Hours;
+                }
+                else if (temp.TaskName == next.TaskName && temp.Date.Day + days == next.Date.Day)
                 {
                     temp.EndDate = next.Date;
                     temp.Hours += next.Hours;
