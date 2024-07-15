@@ -46,7 +46,7 @@ namespace Himitsu.Commands
         public async Task GetTaskAsync(string category = "default")
         {
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetTaskRecords")}&partitionKey={category}");
+            var res = await client.GetAsync($"{GetUrl("GetTasks")}&partitionKey={category}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<TodoTask>>(json);
             if (records == null || records.Count == 0)
@@ -124,6 +124,29 @@ namespace Himitsu.Commands
             var url = $"{GetUrl("DeleteTask")}&partitionKey={category}&id={last.Id}";
             res = await client.DeleteAsync(url);
             Console.WriteLine(await res.Content.ReadAsStringAsync());
+        }
+
+        /// <summary>
+        /// 登録されているタスクのカテゴリ一覧を取得します
+        /// </summary>
+        /// <returns></returns>
+        [Command("task del last")]
+        public async Task GetTaskCategoriesAsync()
+        {
+            using var client = new HttpClient();
+            var res = await client.GetAsync($"{GetUrl("GetTaskCategories")}");
+            var json = await res.Content.ReadAsStringAsync();
+            var records = JsonConvert.DeserializeObject<List<string>>(json);
+            if (records == null || records.Count == 0)
+            {
+                Console.WriteLine("タスクの取得ができませんでした。");
+                return;
+            }
+
+            foreach (var record in records)
+            {
+                Console.WriteLine(record);
+            }
         }
     }
 }
