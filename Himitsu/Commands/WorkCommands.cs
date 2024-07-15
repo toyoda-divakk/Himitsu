@@ -3,6 +3,7 @@ using ConsoleAppFramework;
 using System.Text;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Himitsu.Dependency.Services;
 
 namespace Himitsu.Commands
 {
@@ -15,22 +16,8 @@ namespace Himitsu.Commands
         /// </summary>
         private static string Key => Environment.GetEnvironmentVariable("BliFuncKey") ?? "";
         private static string EndPoint => Environment.GetEnvironmentVariable("BliFuncEndpoint") ?? "";
-        private string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
-
-        /// <summary>
-        /// HttpPostを行い、結果を表示する。
-        /// </summary>
-        /// <param name="url">URL</param>
-        /// <param name="record">工数情報</param>
-        /// <returns></returns>
-        private async Task<string> PostAsync(string url, WorkRecord record)
-        {
-            using var client = new HttpClient();
-            var json = JsonConvert.SerializeObject(record);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var res = await client.PostAsync(url, content);
-            return await res.Content.ReadAsStringAsync();
-        }
+        private static string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
+        private static readonly double DailyStandup = 0.25;
 
         /// <summary>
         /// 日付だけでDistinctを取って、稼働日数を算出する。
@@ -44,7 +31,7 @@ namespace Himitsu.Commands
         /// </summary>
         /// <param name="records">月次工数データ</param>
         /// <returns>集約済み工数データ</returns>
-        private List<WorkRecord> AggregateWorkRecords(List<WorkRecord> records)
+        private static List<WorkRecord> AggregateWorkRecords(List<WorkRecord> records)
         {
             if (records.Count == 0)
             {
@@ -90,14 +77,14 @@ namespace Himitsu.Commands
         /// <param name="hours">-h, 工数</param>
         /// <param name="date">-d, 日付：yyMMdd</param>
         [Command("work rec")]
-        public async Task RecordWorkAsync(string name, double hours = 7.75, string? date = null)
+        public async Task RecordWorkAsync([FromServices] HelperService helper, string name, double hours = 7.75, string? date = null)
         {
             // データの準備
             DateTime? dt = date == null ? null : DateTime.ParseExact(date, "yyMMdd", null);
             var workRecord = new WorkRecord(name, hours, dt);
 
             // データの送信
-            var res = await PostAsync(GetUrl("RecordWork"), workRecord);
+            var res = await helper.PostAsync(GetUrl("RecordWork"), workRecord);
             Console.WriteLine(res);
         }
 
@@ -120,13 +107,14 @@ namespace Himitsu.Commands
                 Console.WriteLine("工数の取得ができませんでした。");
                 return;
             }
-            var standup = GetWorkDays(records) * 0.25;
-            Console.WriteLine($"日次\tCRX Daily Standup\t{standup}h");
-
+            var workDays = GetWorkDays(records);
             if (!test)
             {
                 records = AggregateWorkRecords(records);
             }
+            var standup = (workDays - GetDailyStandupSkipDays(records)) * DailyStandup;
+            Console.WriteLine($"日次\tCRX Daily Standup\t{standup}h");
+
             foreach (var record in records)
             {
                 Console.WriteLine(record.ToSheetFormat());
@@ -135,11 +123,30 @@ namespace Himitsu.Commands
         }
 
         /// <summary>
-        /// 指定した月の工数を削除します
+        /// 作業が8時間以上の日はDaily Standupの工数を0とするため、その日数を算出して補正する工数を求める
+        /// </summary>
+        /// <param name="records"></param>
+        /// <returns>Daily Standupの工数を0にする日数</returns>
+        private static int GetDailyStandupSkipDays(List<WorkRecord> records)
+        {
+            var skip = 0;
+            var dailyHours = records.GroupBy(x => x.Date).Select(x => x.Sum(y => y.Hours));
+            foreach (var hours in dailyHours)
+            {
+                if (hours >= 8)
+                {
+                    skip++;
+                }
+            }
+            return skip;
+        }
+
+        /// <summary>
+        /// 指定した月の工数を全て削除します
         /// </summary>
         /// <param name="month">-m, 年月yyyyMM</param>
         /// <returns></returns>
-        [Command("work del")]
+        [Command("work del all")]
         public async Task DeleteWorkAsync(string? month = null)
         {
             var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
@@ -149,5 +156,57 @@ namespace Himitsu.Commands
             Console.WriteLine(await res.Content.ReadAsStringAsync());
         }
 
+
+        /// <summary>
+        /// 指定した月の工数を取得して、全フィールドを一覧で出力します。
+        /// </summary>
+        /// <param name="month">-m, 年月yyyyMM</param>
+        /// <returns></returns>
+        [Command("work get all")]
+        public async Task GetWorkAllAsync(string? month = null)
+        {
+            var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
+            using var client = new HttpClient();
+            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var json = await res.Content.ReadAsStringAsync();
+            var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
+            if (records == null || records.Count == 0)
+            {
+                Console.WriteLine("工数の取得ができませんでした。");
+                return;
+            }
+            foreach (var record in records)
+            {
+                Console.WriteLine(record.ToString());
+            }
+        }
+
+        /// <summary>
+        /// 最後に登録した工数を削除します
+        /// </summary>
+        /// <param name="month">-m, 年月yyyyMM</param>
+        /// <returns></returns>
+        [Command("work del last")]
+        public async Task DeleteLastWorkAsync(string? month = null)
+        {
+            var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
+            
+            // 最後のレコードを取得
+            using var client = new HttpClient();
+            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var json = await res.Content.ReadAsStringAsync();
+            var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
+            if (records == null || records.Count == 0)
+            {
+                Console.WriteLine("工数の取得ができませんでした。");
+                return;
+            }
+            var last = records.Last();
+
+            // IDを指定して削除
+            var url = $"{GetUrl("DeleteWorkRecord")}&partitionKey={partitionKey}&id={last.Id}";
+            res = await client.DeleteAsync(url);
+            Console.WriteLine(await res.Content.ReadAsStringAsync());
+        }
     }
 }
