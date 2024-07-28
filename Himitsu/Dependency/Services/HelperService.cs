@@ -10,12 +10,6 @@ namespace Himitsu.Dependency.Services
 {
     public class HelperService : IHelperService
     {
-        /// <summary>
-        /// HttpPostを行い、結果を表示する。
-        /// </summary>
-        /// <param name="url">URL</param>
-        /// <param name="record">送信する情報</param>
-        /// <returns></returns>
         public async Task<string> PostAsync<T>(string url, T record)
         {
             using var client = new HttpClient();
@@ -24,5 +18,10 @@ namespace Himitsu.Dependency.Services
             var res = await client.PostAsync(url, content);
             return await res.Content.ReadAsStringAsync();
         }
+
+        public string Key => Environment.GetEnvironmentVariable("BliFuncKey") ?? "";
+        public string EndPoint => Environment.GetEnvironmentVariable("BliFuncEndpoint") ?? "";
+        public string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
+
     }
 }

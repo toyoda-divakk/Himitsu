@@ -10,13 +10,6 @@ namespace Himitsu.Commands
     public class WorkCommands // IDisposable, IAsyncDisposableがついていたら、コマンド実行後にDisposeされる。
     {
         #region private
-        /// <summary>
-        /// 環境変数から"BliFuncKey"の値を取得する。
-        /// Azure関数アプリのmaster（ホスト）キー。
-        /// </summary>
-        private static string Key => Environment.GetEnvironmentVariable("BliFuncKey") ?? "";
-        private static string EndPoint => Environment.GetEnvironmentVariable("BliFuncEndpoint") ?? "";
-        private static string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
         private static readonly double DailyStandup = 0.25;
 
         /// <summary>
@@ -84,7 +77,7 @@ namespace Himitsu.Commands
             var workRecord = new WorkRecord(name, hours, dt);
 
             // データの送信
-            var res = await helper.PostAsync(GetUrl("RecordWork"), workRecord);
+            var res = await helper.PostAsync(helper.GetUrl("RecordWork"), workRecord);
             Console.WriteLine(res);
         }
 
@@ -95,11 +88,11 @@ namespace Himitsu.Commands
         /// <param name="test">-t, 纏めないで出力</param>
         /// <returns></returns>
         [Command("work get")]
-        public async Task GetWorkAsync(string? month = null, bool test = false)
+        public async Task GetWorkAsync([FromServices] HelperService helper, string? month = null, bool test = false)
         {
             var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
             if (records == null || records.Count == 0)
@@ -147,10 +140,10 @@ namespace Himitsu.Commands
         /// <param name="month">-m, 年月yyyyMM</param>
         /// <returns></returns>
         [Command("work del all")]
-        public async Task DeleteWorkAsync(string? month = null)
+        public async Task DeleteWorkAsync([FromServices] HelperService helper, string? month = null)
         {
             var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
-            var url = $"{GetUrl("DeleteWorkRecords")}&partitionKey={partitionKey}";
+            var url = $"{helper.GetUrl("DeleteWorkRecords")}&partitionKey={partitionKey}";
             using var client = new HttpClient();
             var res = await client.DeleteAsync(url);
             Console.WriteLine(await res.Content.ReadAsStringAsync());
@@ -163,11 +156,11 @@ namespace Himitsu.Commands
         /// <param name="month">-m, 年月yyyyMM</param>
         /// <returns></returns>
         [Command("work get all")]
-        public async Task GetWorkAllAsync(string? month = null)
+        public async Task GetWorkAllAsync([FromServices] HelperService helper, string? month = null)
         {
             var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
             if (records == null || records.Count == 0)
@@ -187,13 +180,13 @@ namespace Himitsu.Commands
         /// <param name="month">-m, 年月yyyyMM</param>
         /// <returns></returns>
         [Command("work del last")]
-        public async Task DeleteLastWorkAsync(string? month = null)
+        public async Task DeleteLastWorkAsync([FromServices] HelperService helper, string? month = null)
         {
             var partitionKey = month ?? DateTime.Now.ToString("yyyyMM");
             
             // 最後のレコードを取得
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetWorkRecords")}&partitionKey={partitionKey}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<WorkRecord>>(json);
             if (records == null || records.Count == 0)
@@ -204,7 +197,7 @@ namespace Himitsu.Commands
             var last = records.Last();
 
             // IDを指定して削除
-            var url = $"{GetUrl("DeleteWorkRecord")}&partitionKey={partitionKey}&id={last.Id}";
+            var url = $"{helper.GetUrl("DeleteWorkRecord")}&partitionKey={partitionKey}&id={last.Id}";
             res = await client.DeleteAsync(url);
             Console.WriteLine(await res.Content.ReadAsStringAsync());
         }

@@ -11,10 +11,10 @@ namespace Himitsu.Commands
     /// </summary>
     public class MyCommands // IDisposable, IAsyncDisposableがついていたら、コマンド実行後にDisposeされる。
     {
-        /// <summary>デフォルトのコマンド：オウム返し</summary>
-        /// <param name="msg">-m, Message to show.</param>
-        [Command("")]
-        public void Root(string msg) => Console.WriteLine(msg);     // ※Command属性を使用して名前を任意に変更することもできる。メソッド名が長くなり過ぎた時なんかに。
+        ///// <summary>デフォルトのコマンド：オウム返し</summary>
+        ///// <param name="msg">-m, Message to show.</param>
+        //[Command("")]
+        //public void Root(string msg) => Console.WriteLine(msg);     // ※Command属性を使用して名前を任意に変更することもできる。メソッド名が長くなり過ぎた時なんかに。
 
         ///// <summary>
         ///// 引数のURLに対してHttpGetを行い、結果を表示する。

@@ -14,7 +14,7 @@ ConsoleApp.ServiceProvider = serviceProvider;
 
 // 本体
 var app = ConsoleApp.Create();
-app.Add<MyCommands>();
+//app.Add<MyCommands>();
 app.Add<WorkCommands>();
 app.Add<TaskCommands>();
 app.Run(args);

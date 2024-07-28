@@ -9,17 +9,9 @@ namespace Himitsu.Commands
 {
     public class TaskCommands
     {
-        // TODO:このprivateは共通なのでHelperServiceに入れたら？
-        #region private
-        /// <summary>
-        /// 環境変数から"BliFuncKey"の値を取得する。
-        /// Azure関数アプリのmaster（ホスト）キー。
-        /// </summary>
-        private static string Key => Environment.GetEnvironmentVariable("BliFuncKey") ?? "";
-        private static string EndPoint => Environment.GetEnvironmentVariable("BliFuncEndpoint") ?? "";
-        private static string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
-
-        #endregion
+        /// <summary>デフォルトのコマンド：タスク一覧</summary>
+        [Command("")]
+        public async Task Root([FromServices] HelperService helper) => await GetTaskAsync(helper);
 
         /// <summary>
         /// タスクを登録します
@@ -33,7 +25,7 @@ namespace Himitsu.Commands
             var record = new TodoTask(category, description);
 
             // データの送信
-            var res = await helper.PostAsync(GetUrl("RecordTask"), record);
+            var res = await helper.PostAsync(helper.GetUrl("RecordTask"), record);
             Console.WriteLine(res);
         }
 
@@ -43,10 +35,10 @@ namespace Himitsu.Commands
         /// <param name="category">-c, 分類（半角英字で書くこと）</param>
         /// <returns></returns>
         [Command("task get")]
-        public async Task GetTaskAsync(string category = "default")
+        public async Task GetTaskAsync([FromServices] HelperService helper, string category = "default")
         {
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetTasks")}&partitionKey={category}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetTasks")}&partitionKey={category}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<TodoTask>>(json);
             if (records == null || records.Count == 0)
@@ -54,10 +46,12 @@ namespace Himitsu.Commands
                 Console.WriteLine("タスクの取得ができませんでした。");
                 return;
             }
-            Console.WriteLine($"タスク一覧");
+            Console.WriteLine($"{category}のタスク一覧");
+            var i = 0;
             foreach (var record in records)
             {
-                Console.WriteLine(record);
+                Console.WriteLine($"{i}:{record.Description}");
+                i++;
             }
         }
 
@@ -68,9 +62,9 @@ namespace Himitsu.Commands
         /// <param name="category">-c, 分類（半角英字で書くこと）</param>
         /// <returns></returns>
         [Command("task del all")]
-        public async Task DeleteTaskAsync(string category = "default")
+        public async Task DeleteTaskAsync([FromServices] HelperService helper, string category = "default")
         {
-            var url = $"{GetUrl("DeleteTasks")}&partitionKey={category}";
+            var url = $"{helper.GetUrl("DeleteTasks")}&partitionKey={category}";
             using var client = new HttpClient();
             var res = await client.DeleteAsync(url);
             Console.WriteLine(await res.Content.ReadAsStringAsync());
@@ -83,10 +77,10 @@ namespace Himitsu.Commands
         /// <param name="category">-c, 分類（半角英字で書くこと）</param>
         /// <returns></returns>
         [Command("task get all")]
-        public async Task GetTaskAllAsync(string category = "default")
+        public async Task GetTaskAllAsync([FromServices] HelperService helper, string category = "default")
         {
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetTasks")}&partitionKey={category}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetTasks")}&partitionKey={category}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<TodoTask>>(json);
             if (records == null || records.Count == 0)
@@ -94,23 +88,26 @@ namespace Himitsu.Commands
                 Console.WriteLine("タスクの取得ができませんでした。");
                 return;
             }
+            Console.WriteLine($"{category}のタスク一覧");
+            var i = 0;
             foreach (var record in records)
             {
-                Console.WriteLine(record.ToString());
+                Console.WriteLine($"{i}:{record}");
+                i++;
             }
         }
 
+        // privateにする
         /// <summary>
         /// 最後に登録したタスクを削除します
         /// </summary>
         /// <param name="category">-c, 分類（半角英字で書くこと）</param>
         /// <returns></returns>
-        [Command("task del last")]
-        public async Task DeleteLastTaskAsync(string category = "default")
+        private async Task DeleteLastTaskAsync(HelperService helper, string category = "default")
         {
             // 最後のレコードを取得
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetTasks")}&partitionKey={category}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetTasks")}&partitionKey={category}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<TodoTask>>(json);
             if (records == null || records.Count == 0)
@@ -121,8 +118,30 @@ namespace Himitsu.Commands
             var last = records.Last();
 
             // IDを指定して削除
-            var url = $"{GetUrl("DeleteTask")}&partitionKey={category}&id={last.Id}";
+            var url = $"{helper.GetUrl("DeleteTask")}&partitionKey={category}&id={last.Id}";
             res = await client.DeleteAsync(url);
+            Console.WriteLine(await res.Content.ReadAsStringAsync());
+        }
+
+        /// <summary>
+        /// 指定したカテゴリの何番目のタスクを削除します、指定が無ければdefaultカテゴリの最後のタスクを削除します
+        /// </summary>
+        /// <param name="index">-i, 0番目から指定, 無ければ最後のタスクを削除</param>
+        /// <param name="category">-c, 分類（半角英字で書くこと）</param>
+        /// <returns></returns>
+        [Command("task del")]
+        public async Task DeleteTaskAsync([FromServices] HelperService helper, int index = -1, string category = "default")
+        {
+            if (index < 0)
+            {
+                await DeleteLastTaskAsync(helper, category);
+                return;
+            }
+
+            // IDを指定して削除
+            using var client = new HttpClient();
+            var url = $"{helper.GetUrl("DeleteByIndex")}&partitionKey={category}&index={index}";
+            var res = await client.DeleteAsync(url);
             Console.WriteLine(await res.Content.ReadAsStringAsync());
         }
 
@@ -130,11 +149,11 @@ namespace Himitsu.Commands
         /// 登録されているタスクのカテゴリ一覧を取得します
         /// </summary>
         /// <returns></returns>
-        [Command("task del last")]
-        public async Task GetTaskCategoriesAsync()
+        [Command("task category")]
+        public async Task GetTaskCategoriesAsync([FromServices] HelperService helper)
         {
             using var client = new HttpClient();
-            var res = await client.GetAsync($"{GetUrl("GetTaskCategories")}");
+            var res = await client.GetAsync($"{helper.GetUrl("GetTaskCategories")}");
             var json = await res.Content.ReadAsStringAsync();
             var records = JsonConvert.DeserializeObject<List<string>>(json);
             if (records == null || records.Count == 0)
