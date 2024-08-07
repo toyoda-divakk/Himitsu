@@ -16,9 +16,11 @@ namespace Himitsu.Commands
         /// </summary>
         /// <param name="message">-m, 送信メッセージ</param>
         [Command("ai")]
-        public void Message([FromServices] HelperService helper, string message)
+        public async Task MessageAsync([FromServices] HelperService helper, string message)
         {
-            Console.WriteLine(message);
+            // データの送信
+            var res = await helper.PostAsync(helper.GetUrl("AiDonpen"), message);
+            Console.WriteLine(res);
         }
 
         /// <summary>
