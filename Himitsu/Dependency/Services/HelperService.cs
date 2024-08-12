@@ -19,6 +19,13 @@ namespace Himitsu.Dependency.Services
             return await res.Content.ReadAsStringAsync();
         }
 
+        public async Task<string> GetAsync(string url)
+        {
+            using var client = new HttpClient();
+            var res = await client.GetAsync(url);
+            return await res.Content.ReadAsStringAsync();
+        }
+
         public string Key => Environment.GetEnvironmentVariable("BliFuncKey") ?? "";
         public string EndPoint => Environment.GetEnvironmentVariable("BliFuncEndpoint") ?? "";
         public string GetUrl(string function) => $"{EndPoint}{function}?code={Key}";
