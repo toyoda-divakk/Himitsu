@@ -5,11 +5,11 @@ using System.Text;
 
 namespace Himitsu.Commands
 {
-
     /// <summary>
     /// AI関係
+    /// 単独実行用のコマンド
     /// </summary>
-    public class AiCommands 
+    public class SingleAiCommands 
     {
         /// <summary>
         /// AI関数にメッセージを送信し、応答を表示します。
@@ -20,22 +20,7 @@ namespace Himitsu.Commands
         public async Task MessageAsync([FromServices] HelperService helper, string name, string message)
         {
             // データの送信
-            var res = await helper.PostAsync(helper.GetUrl(name), message); // 関数名の指定に変更すること
-            Console.WriteLine(res);
-        }
-
-        /// <summary>
-        /// AIのpromptyファイルを指定してメッセージを送信し、応答を表示します。
-        /// </summary>
-        /// <param name="name">-n, プロンプトファイル名、拡張子無し、なければドンペン</param>
-        /// <param name="message">-m, 送信メッセージ</param>
-        [Command("ai prompty")]
-        public async Task PromptyMessageAsync([FromServices] HelperService helper, string? name, string message)
-        {
-            name ??= "AiDonpen";
-
-            // データの送信
-            var res = await helper.PostAsync($"{helper.GetUrl("Ai")}&name={name}", message);
+            var res = await helper.PostAsync(helper.GetUrl(name), message);
             Console.WriteLine(res);
         }
 
@@ -63,6 +48,21 @@ namespace Himitsu.Commands
 
             // データの送信
             var res = await helper.PostAsync(helper.GetUrl(name), inputData);
+            Console.WriteLine(res);
+        }
+
+        /// <summary>
+        /// AIのpromptyファイルを指定してメッセージを送信し、応答を表示します。基本的に使わないかな。
+        /// </summary>
+        /// <param name="name">-n, プロンプトファイル名、拡張子無し、なければドンペン</param>
+        /// <param name="message">-m, 送信メッセージ</param>
+        [Command("ai prompty")]
+        public async Task PromptyMessageAsync([FromServices] HelperService helper, string? name, string message)
+        {
+            name ??= "AiDonpen";
+
+            // データの送信
+            var res = await helper.PostAsync($"{helper.GetUrl("Ai")}&name={name}", message);
             Console.WriteLine(res);
         }
 

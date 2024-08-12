@@ -20,6 +20,6 @@ Console.OutputEncoding = Encoding.UTF8;
 var app = ConsoleApp.Create();
 app.Add<WorkCommands>();
 app.Add<TaskCommands>();
-app.Add<AiCommands>();
+app.Add<SingleAiCommands>();
 app.Run(args);
 
