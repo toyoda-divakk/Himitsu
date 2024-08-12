@@ -27,11 +27,13 @@ namespace Himitsu.Commands
         /// <summary>
         /// AIのpromptyファイルを指定してメッセージを送信し、応答を表示します。
         /// </summary>
-        /// <param name="name">-n, プロンプトファイル名、拡張子無し</param>
+        /// <param name="name">-n, プロンプトファイル名、拡張子無し、なければドンペン</param>
         /// <param name="message">-m, 送信メッセージ</param>
         [Command("ai prompty")]
-        public async Task PromptyMessageAsync([FromServices] HelperService helper, string name, string message)
+        public async Task PromptyMessageAsync([FromServices] HelperService helper, string? name, string message)
         {
+            name ??= "AiDonpen";
+
             // データの送信
             var res = await helper.PostAsync($"{helper.GetUrl("Ai")}&name={name}", message);
             Console.WriteLine(res);
@@ -48,20 +50,21 @@ namespace Himitsu.Commands
             Console.WriteLine(res);
         }
 
-        // Himitsu ai file < 入力ファイル.txt > 出力ファイル.txt
+        // Himitsu ai file -n AiDonpen < 入力ファイル.txt > 出力ファイル.txt
         /// <summary>
         /// AIにテキストファイルを入力し、応答を表示します。 
         /// </summary>
+        /// <param name="name">-n, 使用するAI名、なければドンペン</param>
         [Command("ai file")]
-        public async Task FileInputToAi([FromServices] HelperService helper)
+        public async Task FileInputToAi([FromServices] HelperService helper, string? name)
         {
-            string inputData = Console.In.ReadToEnd();
+            var inputData = Console.In.ReadToEnd();
+            name ??= "AiDonpen";
 
             // データの送信
-            var res = await helper.PostAsync(helper.GetUrl("AiDonpen"), inputData);         // TODO:"AiDonpen"を何か他のに変更する
+            var res = await helper.PostAsync(helper.GetUrl(name), inputData);
             Console.WriteLine(res);
         }
-
 
 
         ///// <summary>
