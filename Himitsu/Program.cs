@@ -21,5 +21,6 @@ var app = ConsoleApp.Create();
 app.Add<WorkCommands>();
 app.Add<TaskCommands>();
 app.Add<SingleAiCommands>();
+app.Add<ChatAiCommands>();
 app.Run(args);
 

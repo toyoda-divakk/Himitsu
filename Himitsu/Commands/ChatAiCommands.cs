@@ -56,5 +56,45 @@ namespace Himitsu.Commands
         //    Console.WriteLine("List");
         //}
 
+        // C#のコンソールアプリで会話履歴をメモリ上に保持しながらAIとチャットするソフトを作成する場合、アプリが終了しないように待機状態にする必要があります。これには、ループを使用してユーザー入力を継続的に受け取り、会話履歴を更新し続ける方法が一般的です。
+        /// <summary>
+        /// チャットモードを開始する。
+        /// </summary>
+        /// <param name="helper"></param>
+        [Command("chat start")]
+        public void Start()
+        {
+            Console.WriteLine("AIチャットを開始します。終了するには 'exit' と入力してください。");
+
+            List<string> chatHistory = [];
+            while (true)
+            {
+                Console.Write("あなた: ");
+                var userInput = Console.ReadLine();
+
+                if (userInput == null || userInput.ToLower() == "exit")
+                {
+                    break;
+                }
+
+                chatHistory.Add("あなた: " + userInput);
+
+                // 簡単なエコーAIの応答  
+                string aiResponse = "AI: " + userInput;
+                chatHistory.Add(aiResponse);
+
+                Console.WriteLine(aiResponse);
+            }
+
+            Console.WriteLine("会話履歴:");
+            foreach (string message in chatHistory)
+            {
+                Console.WriteLine(message);
+            }
+
+            Console.WriteLine("チャットを終了します。");
+        }
+
+
     }
 }
